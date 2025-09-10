@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { timetable, notices, attendance, fees, grades, assignments, users } from '../../data/mockData';
+import { timetable, attendance, fees, grades, assignments, users } from '../../data/mockData';
+import { getAllNotices } from '../../data/noticesData';
 import { calculateAttendancePercentage, getStudentAttendanceHistory, getStudentAttendanceBySubject, calculateAttendancePercentageBySubject } from '../../data/attendanceData';
 import { submitAssignment, getStudentAssignmentStatus } from '../../data/assignmentData';
 import { makePayment, getFeeSummary, payAllPendingFees } from '../../data/feeData';
@@ -14,6 +15,7 @@ export default function StudentDashboard() {
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState('');
   const [selectedDateFilter, setSelectedDateFilter] = useState('');
   const [feeData, setFeeData] = useState(null);
+  const [notices, setNotices] = useState([]);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
@@ -28,7 +30,24 @@ export default function StudentDashboard() {
     if (currentUser) {
       setFeeData(getFeeSummary(currentUser.username));
     }
+    setNotices(getAllNotices());
   }, [currentUser]);
+
+  // Refresh notices when notices tab is accessed
+  useEffect(() => {
+    if (activeTab === 'notices') {
+      setNotices(getAllNotices());
+    }
+  }, [activeTab]);
+
+  // Auto-refresh notices every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNotices(getAllNotices());
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('currentUser');
@@ -134,14 +153,42 @@ export default function StudentDashboard() {
 
             <div className="grid">
               <div className="card">
-                <h2>Recent Notices</h2>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                  <h2>Recent Notices</h2>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      setNotices(getAllNotices());
+                      setActiveTab('notices');
+                    }}
+                    style={{ fontSize: '11px', padding: '4px 8px' }}
+                  >
+                    View All
+                  </button>
+                </div>
                 {notices.slice(0, 3).map(notice => (
                   <div key={notice.id} style={{ padding: '10px', borderBottom: '1px solid #eee' }}>
-                    <h4>{notice.title}</h4>
-                    <p>{notice.content}</p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '5px' }}>
+                      <h4 style={{ margin: 0, fontSize: '16px' }}>{notice.title}</h4>
+                      {notice.priority && (
+                        <span className={`status-badge ${notice.priority === 'high' ? 'status-danger' :
+                            notice.priority === 'medium' ? 'status-warning' : 'status-info'
+                          }`} style={{ fontSize: '10px' }}>
+                          {notice.priority.toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <p style={{ margin: '5px 0', fontSize: '14px' }}>
+                      {notice.content.length > 100 ? notice.content.substring(0, 100) + '...' : notice.content}
+                    </p>
                     <small style={{ color: '#666' }}>{notice.date}</small>
                   </div>
                 ))}
+                {notices.length === 0 && (
+                  <p style={{ textAlign: 'center', color: '#666', padding: '20px' }}>
+                    No notices available.
+                  </p>
+                )}
               </div>
 
               <div className="card">
@@ -323,7 +370,16 @@ export default function StudentDashboard() {
 
         {activeTab === 'notices' && (
           <div className="card">
-            <h2>All Notices</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2>All Notices</h2>
+              <button
+                className="btn btn-primary"
+                onClick={() => setNotices(getAllNotices())}
+                style={{ fontSize: '12px', padding: '6px 12px' }}
+              >
+                Refresh
+              </button>
+            </div>
             {notices.map(notice => (
               <div key={notice.id} style={{
                 padding: '15px',
@@ -332,9 +388,26 @@ export default function StudentDashboard() {
               }}>
                 <h3>{notice.title}</h3>
                 <p style={{ margin: '10px 0' }}>{notice.content}</p>
-                <small style={{ color: '#666' }}>Posted on: {notice.date}</small>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <small style={{ color: '#666' }}>Posted on: {notice.date}</small>
+                  {notice.priority && (
+                    <span className={`status-badge ${notice.priority === 'high' ? 'status-danger' :
+                        notice.priority === 'medium' ? 'status-warning' : 'status-info'
+                      }`}>
+                      {notice.priority.toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                {notice.author && (
+                  <small style={{ color: '#999', fontStyle: 'italic' }}>By: {notice.author}</small>
+                )}
               </div>
             ))}
+            {notices.length === 0 && (
+              <p style={{ textAlign: 'center', color: '#666', padding: '20px' }}>
+                No notices available at the moment.
+              </p>
+            )}
           </div>
         )}
 

@@ -385,13 +385,9 @@ export const timetable = {
   ]
 };
 
-export const notices = [
-  { id: 1, title: 'Semester Exam Schedule', content: 'End semester examinations will commence from February 15th, 2025. Students are advised to check the detailed timetable on the college portal.', date: '2025-01-15' },
-  { id: 2, title: 'Industry Expert Lecture', content: 'Guest lecture by Mr. Sundar Pichai, CEO Google, on "Future of Technology" scheduled for January 20th at 2 PM in the main auditorium.', date: '2025-01-10' },
-  { id: 3, title: 'Technical Fest - TechnoVision 2025', content: 'Annual technical festival will be held from January 25-27th. Registration for events is now open. Prizes worth ₹5 lakhs!', date: '2025-01-08' },
-  { id: 4, title: 'Placement Drive', content: 'Microsoft, Google, and Amazon will be conducting campus placements from February 1st. Eligible students should register immediately.', date: '2025-01-05' },
-  { id: 5, title: 'Library Extended Hours', content: 'Central library will remain open 24/7 during exam period (Feb 1-28). Students can access study halls and digital resources.', date: '2025-01-12' }
-];
+// Import notices from separate data file
+import { getAllNotices } from './noticesData.js';
+export const notices = getAllNotices();
 
 export const attendance = {
   'student1': { present: 142, total: 160, percentage: 88.8 },

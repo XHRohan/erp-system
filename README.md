@@ -129,7 +129,3 @@ When integrating with Supabase:
 - Email notifications
 - Mobile responsiveness improvements
 - Advanced reporting features
-
-## Notes
-
-This is a simplified version designed for hackathons and rapid prototyping. The code is intentionally kept simple and beginner-friendly, using basic CSS instead of complex frameworks.

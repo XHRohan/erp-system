@@ -1,5 +1,5 @@
-// Assignment submissions and management
-export let assignmentSubmissions = {
+// Default assignment submissions data
+const defaultAssignmentSubmissions = {
   // CSE-3A Assignments
   1: { // Binary Search Tree Implementation - Data Structures (prof2)
     'student1': { submitted: false, submissionDate: null, file: null, grade: null, feedback: null },
@@ -49,13 +49,65 @@ export let assignmentSubmissions = {
   }
 };
 
+// Storage key for localStorage
+const ASSIGNMENT_STORAGE_KEY = 'erpAssignmentData';
+
+// Initialize assignment data from localStorage or use default
+const initializeAssignmentData = () => {
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem(ASSIGNMENT_STORAGE_KEY);
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch (error) {
+        console.error('Error parsing stored assignment data:', error);
+        localStorage.removeItem(ASSIGNMENT_STORAGE_KEY);
+      }
+    }
+    // Save default data to localStorage
+    localStorage.setItem(ASSIGNMENT_STORAGE_KEY, JSON.stringify(defaultAssignmentSubmissions));
+    return { ...defaultAssignmentSubmissions };
+  }
+  return { ...defaultAssignmentSubmissions };
+};
+
+// Save assignment data to localStorage
+const saveAssignmentData = (data) => {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(ASSIGNMENT_STORAGE_KEY, JSON.stringify(data));
+    } catch (error) {
+      console.error('Error saving assignment data:', error);
+    }
+  }
+};
+
+// Get current assignment data
+const getAssignmentData = () => {
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem(ASSIGNMENT_STORAGE_KEY);
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch (error) {
+        console.error('Error parsing stored assignment data:', error);
+        localStorage.removeItem(ASSIGNMENT_STORAGE_KEY);
+        return initializeAssignmentData();
+      }
+    }
+  }
+  return initializeAssignmentData();
+};
+
 // Function to submit assignment
 export const submitAssignment = (assignmentId, studentUsername, fileName) => {
-  if (!assignmentSubmissions[assignmentId]) {
-    assignmentSubmissions[assignmentId] = {};
+  const currentData = getAssignmentData();
+  
+  if (!currentData[assignmentId]) {
+    currentData[assignmentId] = {};
   }
 
-  assignmentSubmissions[assignmentId][studentUsername] = {
+  currentData[assignmentId][studentUsername] = {
     submitted: true,
     submissionDate: new Date().toISOString().split('T')[0],
     file: fileName,
@@ -63,14 +115,18 @@ export const submitAssignment = (assignmentId, studentUsername, fileName) => {
     feedback: null
   };
 
+  saveAssignmentData(currentData);
   return true;
 };
 
 // Function to grade assignment
 export const gradeAssignment = (assignmentId, studentUsername, grade, feedback) => {
-  if (assignmentSubmissions[assignmentId] && assignmentSubmissions[assignmentId][studentUsername]) {
-    assignmentSubmissions[assignmentId][studentUsername].grade = grade;
-    assignmentSubmissions[assignmentId][studentUsername].feedback = feedback;
+  const currentData = getAssignmentData();
+  
+  if (currentData[assignmentId] && currentData[assignmentId][studentUsername]) {
+    currentData[assignmentId][studentUsername].grade = grade;
+    currentData[assignmentId][studentUsername].feedback = feedback;
+    saveAssignmentData(currentData);
     return true;
   }
   return false;
@@ -78,12 +134,14 @@ export const gradeAssignment = (assignmentId, studentUsername, grade, feedback) 
 
 // Function to get assignment submissions for a class
 export const getAssignmentSubmissions = (assignmentId) => {
-  return assignmentSubmissions[assignmentId] || {};
+  const currentData = getAssignmentData();
+  return currentData[assignmentId] || {};
 };
 
 // Function to get student's assignment status
 export const getStudentAssignmentStatus = (assignmentId, studentUsername) => {
-  return assignmentSubmissions[assignmentId]?.[studentUsername] || {
+  const currentData = getAssignmentData();
+  return currentData[assignmentId]?.[studentUsername] || {
     submitted: false,
     submissionDate: null,
     file: null,

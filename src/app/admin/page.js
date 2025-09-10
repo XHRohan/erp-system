@@ -4,6 +4,7 @@ import { users, classes, attendance, fees } from '../../data/mockData';
 import { getAllPendingFees } from '../../data/feeData';
 import { attendanceRecords } from '../../data/attendanceData';
 import { subjects, getSubjectsByDepartment } from '../../data/subjects';
+import { addNotice, deleteNotice, updateNotice, getAllNotices } from '../../data/noticesData';
 
 export default function AdminDashboard() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -12,6 +13,11 @@ export default function AdminDashboard() {
   const [newTeacher, setNewTeacher] = useState({ name: '', department: '', subject: '', username: '', password: '' });
   const [showReports, setShowReports] = useState(false);
   const [reportType, setReportType] = useState('');
+  const [showAddNotice, setShowAddNotice] = useState(false);
+  const [showManageNotices, setShowManageNotices] = useState(false);
+  const [newNotice, setNewNotice] = useState({ title: '', content: '', priority: 'medium' });
+  const [notices, setNotices] = useState([]);
+  const [editingNotice, setEditingNotice] = useState(null);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
@@ -21,6 +27,7 @@ export default function AdminDashboard() {
     }
     setCurrentUser(user);
     setTeachers(users.filter(u => u.role === 'teacher'));
+    setNotices(getAllNotices());
   }, []);
 
   const handleLogout = () => {
@@ -44,6 +51,43 @@ export default function AdminDashboard() {
     setNewTeacher({ name: '', department: '', subject: '', username: '', password: '' });
     setShowAddTeacher(false);
     alert('Professor added successfully!');
+  };
+
+  const handleAddNotice = (e) => {
+    e.preventDefault();
+    if (!newNotice.title.trim() || !newNotice.content.trim()) {
+      alert('Please fill in all fields.');
+      return;
+    }
+
+    const notice = addNotice(newNotice.title, newNotice.content, currentUser.name, newNotice.priority);
+    setNotices(getAllNotices());
+    setNewNotice({ title: '', content: '', priority: 'medium' });
+    setShowAddNotice(false);
+    alert('Notice added successfully!');
+  };
+
+  const handleDeleteNotice = (noticeId) => {
+    if (window.confirm('Are you sure you want to delete this notice?')) {
+      if (deleteNotice(noticeId)) {
+        setNotices(getAllNotices());
+        alert('Notice deleted successfully!');
+      }
+    }
+  };
+
+  const handleUpdateNotice = (e) => {
+    e.preventDefault();
+    if (!editingNotice.title.trim() || !editingNotice.content.trim()) {
+      alert('Please fill in all fields.');
+      return;
+    }
+
+    if (updateNotice(editingNotice.id, editingNotice.title, editingNotice.content, editingNotice.priority)) {
+      setNotices(getAllNotices());
+      setEditingNotice(null);
+      alert('Notice updated successfully!');
+    }
   };
 
   if (!currentUser) return <div>Loading...</div>;
@@ -80,9 +124,9 @@ export default function AdminDashboard() {
         <div className="admin-grid">
           <div className="card admin-reports-card">
             <h2 className="card-title">System Reports</h2>
-            <div className="button-group">
+            <div className="admin-card-buttons">
               <button
-                className="btn btn-primary"
+                className="btn btn-primary admin-btn-compact"
                 onClick={() => {
                   setReportType('attendance');
                   setShowReports(true);
@@ -91,7 +135,7 @@ export default function AdminDashboard() {
                 Attendance
               </button>
               <button
-                className="btn btn-primary"
+                className="btn btn-primary admin-btn-compact"
                 onClick={() => {
                   setReportType('fees');
                   setShowReports(true);
@@ -100,7 +144,7 @@ export default function AdminDashboard() {
                 Fee Collection
               </button>
               <button
-                className="btn btn-primary"
+                className="btn btn-primary admin-btn-compact"
                 onClick={() => {
                   setReportType('academic');
                   setShowReports(true);
@@ -122,7 +166,7 @@ export default function AdminDashboard() {
             <h2 className="card-title">Professor Management</h2>
             <button
               onClick={() => setShowAddTeacher(true)}
-              className="btn btn-primary"
+              className="btn btn-primary admin-btn-compact"
               style={{ marginBottom: '15px' }}
             >
               Add New Professor
@@ -177,6 +221,37 @@ export default function AdminDashboard() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          <div className="card">
+            <h2 className="card-title">Notice Management</h2>
+            <div className="admin-card-buttons">
+              <button
+                onClick={() => setShowAddNotice(true)}
+                className="btn btn-success admin-btn-compact"
+              >
+                Add New Notice
+              </button>
+              <button
+                onClick={() => setShowManageNotices(true)}
+                className="btn btn-primary admin-btn-compact"
+              >
+                Manage Notices
+              </button>
+            </div>
+
+            <div className="quick-stats">
+              <h4>Recent Notices</h4>
+              {notices.slice(0, 3).map(notice => (
+                <div key={notice.id} style={{ marginBottom: '8px', padding: '8px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
+                  <strong style={{ fontSize: '13px' }}>{notice.title}</strong>
+                  <p style={{ fontSize: '12px', margin: '4px 0', color: '#666' }}>
+                    {notice.content.length > 80 ? notice.content.substring(0, 80) + '...' : notice.content}
+                  </p>
+                  <small style={{ color: '#999' }}>{notice.date} - {notice.priority.toUpperCase()}</small>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -255,7 +330,7 @@ export default function AdminDashboard() {
                     required
                   />
                 </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div className="admin-modal-buttons">
                   <button type="submit" className="btn btn-success">Add Professor</button>
                   <button
                     type="button"
@@ -405,7 +480,7 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              <div className="btn-group" style={{ marginTop: '20px' }}>
+              <div className="admin-modal-buttons">
                 <button
                   onClick={() => setShowReports(false)}
                   className="btn btn-danger"
@@ -413,6 +488,206 @@ export default function AdminDashboard() {
                   Close
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {showAddNotice && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <div className="card" style={{ width: '90%', maxWidth: '500px' }}>
+              <h3>Add New Notice</h3>
+              <form onSubmit={handleAddNotice}>
+                <div className="form-group">
+                  <label>Title:</label>
+                  <input
+                    type="text"
+                    value={newNotice.title}
+                    onChange={(e) => setNewNotice({ ...newNotice, title: e.target.value })}
+                    required
+                    placeholder="Enter notice title"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Content:</label>
+                  <textarea
+                    value={newNotice.content}
+                    onChange={(e) => setNewNotice({ ...newNotice, content: e.target.value })}
+                    required
+                    rows="4"
+                    placeholder="Enter notice content"
+                    style={{ width: '100%', padding: '12px', border: '2px solid #e9ecef', borderRadius: '8px', resize: 'vertical' }}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Priority:</label>
+                  <select
+                    value={newNotice.priority}
+                    onChange={(e) => setNewNotice({ ...newNotice, priority: e.target.value })}
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+                <div className="admin-modal-buttons">
+                  <button type="submit" className="btn btn-success">Add Notice</button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAddNotice(false);
+                      setNewNotice({ title: '', content: '', priority: 'medium' });
+                    }}
+                    className="btn btn-danger"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {showManageNotices && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <div className="card" style={{ width: '90%', maxWidth: '800px', maxHeight: '80vh', overflow: 'auto' }}>
+              <h3>Manage Notices</h3>
+
+              <div className="table-wrapper">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Date</th>
+                      <th>Priority</th>
+                      <th>Author</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {notices.map(notice => (
+                      <tr key={notice.id}>
+                        <td title={notice.title}>
+                          {notice.title.length > 30 ? notice.title.substring(0, 30) + '...' : notice.title}
+                        </td>
+                        <td>{notice.date}</td>
+                        <td>
+                          <span className={`status-badge ${notice.priority === 'high' ? 'status-danger' :
+                              notice.priority === 'medium' ? 'status-warning' : 'status-info'
+                            }`}>
+                            {notice.priority.toUpperCase()}
+                          </span>
+                        </td>
+                        <td>{notice.author}</td>
+                        <td>
+                          <div className="admin-table-actions">
+                            <button
+                              onClick={() => setEditingNotice({ ...notice })}
+                              className="btn btn-primary admin-action-btn"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteNotice(notice.id)}
+                              className="btn btn-danger admin-action-btn"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="admin-modal-buttons">
+                <button
+                  onClick={() => setShowManageNotices(false)}
+                  className="btn btn-danger"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {editingNotice && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <div className="card" style={{ width: '90%', maxWidth: '500px' }}>
+              <h3>Edit Notice</h3>
+              <form onSubmit={handleUpdateNotice}>
+                <div className="form-group">
+                  <label>Title:</label>
+                  <input
+                    type="text"
+                    value={editingNotice.title}
+                    onChange={(e) => setEditingNotice({ ...editingNotice, title: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Content:</label>
+                  <textarea
+                    value={editingNotice.content}
+                    onChange={(e) => setEditingNotice({ ...editingNotice, content: e.target.value })}
+                    required
+                    rows="4"
+                    style={{ width: '100%', padding: '12px', border: '2px solid #e9ecef', borderRadius: '8px', resize: 'vertical' }}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Priority:</label>
+                  <select
+                    value={editingNotice.priority}
+                    onChange={(e) => setEditingNotice({ ...editingNotice, priority: e.target.value })}
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+                <div className="admin-modal-buttons">
+                  <button type="submit" className="btn btn-success">Update Notice</button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingNotice(null)}
+                    className="btn btn-danger"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
